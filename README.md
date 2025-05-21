@@ -7,3 +7,9 @@
 ### The data set predicts the popularity of the anime based on it's rating, income generated and watch time.
 ## Dataset source (Where did you find it?)
 ### Kaggle
+## How to run the code?
+### Run: python Lab3.py --file [file name]
+## Group member contributions
+### Vincent Allen Sison: 100%
+## Special Work
+### Implemented 3 way split
