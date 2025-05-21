@@ -12,36 +12,41 @@ def load_dataset(filepath):
     return df
 
 def preprocess_data(df):
-    # Keep only relevant columns for prediction
-    features = ['Ratings', 'Budget (in Million USD)', 'Number of Episodes', 'Duration per Episode (minutes)']
+    # Keep only numerical features of interest
+    features = [
+        'Ratings',
+        'Budget (in Million USD)',
+        'Number of Episodes',
+        'Duration per Episode (minutes)'
+    ]
     df = df[features].copy()
-
-    # Convert to appropriate types
+    
+    # Convert all to numeric, drop missing values
     df = df.apply(pd.to_numeric, errors='coerce')
-
-    # Drop rows with missing values
-    df = df.dropna()
-
+    df.dropna(inplace=True)
     return df
 
-def splitData(df, train_ratio=0.8):
-    """
-    Sequential split: First 80% for training, rest for testing
-    """
-    split_index = int(len(df) * train_ratio)
-    train_data = df.iloc[:split_index]
-    test_data = df.iloc[split_index:]
-    return train_data, test_data
-
-def splitDataRandom(df, train_ratio=0.8):
-    """
-    Random split: 80% training, 20% testing
-    """
+def split_three_way(df, train_ratio=0.7, val_ratio=0.15, test_ratio=0.15):
+    assert abs(train_ratio + val_ratio + test_ratio - 1.0) < 1e-6, "Split ratios must sum to 1.0"
+    
     df_shuffled = df.sample(frac=1, random_state=42).reset_index(drop=True)
-    split_index = int(len(df_shuffled) * train_ratio)
-    train_data = df_shuffled.iloc[:split_index]
-    test_data = df_shuffled.iloc[split_index:]
-    return train_data, test_data
+    total = len(df_shuffled)
+    
+    train_end = int(train_ratio * total)
+    val_end = train_end + int(val_ratio * total)
+    
+    train = df_shuffled[:train_end]
+    val = df_shuffled[train_end:val_end]
+    test = df_shuffled[val_end:]
+    
+    return train, val, test
+
+def analyze_statistics(df):
+    print("\n=== Dataset Statistics ===")
+    print("\nMean:\n", df.mean(numeric_only=True))
+    print("\nMax:\n", df.max(numeric_only=True))
+    print("\nMin:\n", df.min(numeric_only=True))
+    print("\nCorrelation Matrix:\n", df.corr(numeric_only=True))
 
 def main():
     parser = argparse.ArgumentParser()
@@ -51,13 +56,14 @@ def main():
     df = load_dataset(args.file)
     df_clean = preprocess_data(df)
 
-    print("=== Sequential Split ===")
-    train_seq, test_seq = splitData(df_clean)
-    print(f"Train size: {len(train_seq)} | Test size: {len(test_seq)}")
+    analyze_statistics(df_clean)
 
-    print("\n=== Random Split ===")
-    train_rand, test_rand = splitDataRandom(df_clean)
-    print(f"Train size: {len(train_rand)} | Test size: {len(test_rand)}")
+    train, val, test = split_three_way(df_clean)
+
+    print(f"\n=== Split Sizes ===")
+    print(f"Train size: {len(train)}")
+    print(f"Validation size: {len(val)}")
+    print(f"Test size: {len(test)}")
 
 if __name__ == "__main__":
     main()
